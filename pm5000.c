@@ -58,7 +58,7 @@ int16_t pm5000_read(uint8_t *pData)
 	nP50 = szBuf[25]*256*256 + szBuf[26]*256 + szBuf[27];
 	nP100 = szBuf[28]*256*256 + szBuf[29]*256 + szBuf[30];
 	
-	printf("len=%d, sts=%x, p0.3=%d, p0.5=%d, p1.0=%d, p2.5=%d, p5.0-%d, p10.0=%d\r\n",
+	sprintf(pData, "len=%d, sts=%x, p0.3=%d, p0.5=%d, p1.0=%d, p2.5=%d, p5.0-%d, p10.0=%d",
 		szBuf[1], szBuf[2], nP03, nP05, nP10, nP25, nP50, nP100);
 	return NO_ERROR;
 

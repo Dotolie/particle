@@ -38,6 +38,7 @@
 #include <inttypes.h>  // PRIu64
 #include <stdio.h>     // printf
 #include <unistd.h>    // sleep
+#include <zmq.h>
 
 /* TO USE CONSOLE OUTPUT (printf) AND WAIT (sleep) YOU MAY NEED TO ADAPT THE
  * INCLUDES ABOVE OR DEFINE THEM ACCORDING TO YOUR PLATFORM.
@@ -52,9 +53,17 @@ int main(void) {
     uint32_t iaq_baseline;
     uint16_t ethanol_raw_signal, h2_raw_signal;
 	uint8_t szBuf[16];
+	char szPm5000[1024];
 	uint16_t sSerial[6];
 	uint16_t sCo2;
 	uint8_t cStatus;
+
+	    //  Prepare our context and publisher
+    void *context = zmq_ctx_new();
+    void *publisher = zmq_socket (context, ZMQ_PUB);
+    zmq_bind (publisher, "tcp://127.0.0.1:3333");
+    char *string = "Hi!";
+	
 #if 0
     const char* driver_version = sgp30_get_driver_version();
     if (driver_version) {
@@ -191,14 +200,26 @@ int main(void) {
 #endif
 
 #if 1
-		pm5000_read(szBuf);
-
+		pm5000_read(szPm5000);
+		printf("pm5000: %s\r\n", szPm5000);
 #endif
+
+
 		err = htu31d_readTnRH(szBuf);
         /* The IAQ measurement must be triggered exactly once per second (SGP30)
          * to get accurate values.
          */
         sleep(1);  // SGP30
+
+        zmq_msg_t message;
+        zmq_msg_init_size (&message, strlen(szPm5000));
+        memcpy (zmq_msg_data(&message), string, strlen(szPm5000));
+        int rc = zmq_msg_send(publisher, &message, 0);
+        zmq_msg_close (&message);		
     }
-    return 0;
+
+	zmq_close (publisher);
+    zmq_term (context);
+
+	return 0;
 }
