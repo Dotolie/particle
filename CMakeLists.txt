@@ -20,7 +20,7 @@ INCLUDE_DIRECTORIES (
 #LINK_DIRECTORIES ( ${CMAKE_SOURCE_DIR}/lib )
 
 FILE(GLOB SRCS
-	src/main.c
+	src/main.cpp
 	src/sgp30.c
         src/sensirion_common.c
         src/sensirion_hw_i2c_implementation.c

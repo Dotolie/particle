@@ -85,7 +85,7 @@ int16_t htu31d_heaterOff()
 	return NO_ERROR;
 }
 
-int16_t htu31d_readTnRH(uint8_t *pData)
+int16_t htu31d_readTnRH(float *pfTemp, float *pfHum)
 {
 	int16_t i = 0;
 	int16_t ret = 0;
@@ -122,6 +122,9 @@ int16_t htu31d_readTnRH(uint8_t *pData)
 	fTemp = cal_temperature(temp);
 	fHum = cal_humidity(hum);
 
+	*pfTemp = fTemp;
+	*pfHum = fHum;
+	
 	printf("t=%5.1f'C, rh=%5.1f%\r\n", fTemp, fHum);
 	
 	
@@ -217,9 +220,11 @@ int16_t htu31d_readSerialNum(uint8_t *pData)
 	if( szBuf[3] != crc ) 
 		return -1;
 	
-	for(i=0;i<4;i++)
+	for(i=0;i<4;i++) {
 		printf("i[%d]=%x, (%x)\r\n",i, szBuf[i], crc);
-
+		pData[i]=szBuf[i+1];
+		}
+	
 	return NO_ERROR;
 }
 

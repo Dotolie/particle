@@ -1,7 +1,7 @@
 
 #ifndef HTU31D_H
 #define HTU31D_H
-//#include "sensirion_arch_config.h"
+
 #include "sensirion_common.h"
 #include "sensirion_i2c.h"
 
@@ -27,7 +27,10 @@ extern "C" {
 #define HTU31D_READ_SERIAL_NO_SIZE									6
 
 
-
+typedef struct _HTU31D {
+	char m_szSerialNo[4];
+	
+} tHTU31D;
 
 int16_t htu31d_check_crc(uint8_t* pBuf, int16_t nSize);
 uint8_t htu31d_crc8 (const uint8_t *data, uint8_t len);
@@ -35,10 +38,10 @@ uint8_t htu31d_crc8 (const uint8_t *data, uint8_t len);
 int16_t htu31d_reset();
 int16_t htu31d_heaterOn();
 int16_t htu31d_heaterOff();
-int16_t htu31d_readTnRH(uint8_t *pData);
+int16_t htu31d_readTnRH(float *, float *);
 int16_t htu31d_Convertion(uint8_t cOsrrh, uint8_t cOsrt);
 int16_t htu31d_readDiagnostic();
-int16_t htu31d_readSerialNum();
+int16_t htu31d_readSerialNum(uint8_t *);
 int16_t htu31d_send(uint8_t cIsOpen);
 
 #ifdef __cplusplus

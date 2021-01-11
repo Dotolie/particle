@@ -42,6 +42,16 @@
 extern "C" {
 #endif
 
+typedef struct _SGP30 {
+	short	m_sFeature_version;
+	char 	m_cProduct_type;
+	long long m_llSerial_id;
+	short 	m_sEthanol_raw_signal;
+	short 	m_sH2_raw_signal;
+	short 	m_sTvoc_ppb;
+	short	m_sCo2_eq_ppm;
+} tSGP30;
+
 /**
  * sgp30_probe() - check if SGP sensor is available and initialize it
  *

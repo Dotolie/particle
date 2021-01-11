@@ -33,18 +33,30 @@
 #include "cm1109.h"
 #include "pm5000.h"
 #include "htu31d.h"
-
+#include "debug.h"
 
 #include <inttypes.h>  // PRIu64
 #include <stdio.h>     // printf
 #include <unistd.h>    // sleep
 #include <zmq.h>
+#include <string>
+#include <stdlib.h>
 
 /* TO USE CONSOLE OUTPUT (printf) AND WAIT (sleep) YOU MAY NEED TO ADAPT THE
  * INCLUDES ABOVE OR DEFINE THEM ACCORDING TO YOUR PLATFORM.
  * #define printf(...)
  * #define sleep(...)
  */
+ 
+using namespace std;
+
+tSGP30 g_SGP30 = {0,};
+tHTU31D g_HTU31D = {0,};
+tCM1109 g_CM1109 = {0,};
+tPM5000 g_PM5000 = {0,};
+
+
+
 
 int main(void) {
     uint16_t i = 0;
@@ -52,17 +64,23 @@ int main(void) {
     uint16_t tvoc_ppb, co2_eq_ppm;
     uint32_t iaq_baseline;
     uint16_t ethanol_raw_signal, h2_raw_signal;
+	uint16_t feature_set_version;
+    uint8_t product_type;
+    uint64_t serial_id;
+	
 	uint8_t szBuf[16];
-	char szPm5000[1024];
+	char zBuff[1024];
 	uint16_t sSerial[6];
 	uint16_t sCo2;
 	uint8_t cStatus;
-
-	    //  Prepare our context and publisher
+	float fTemp;
+	float fHum;
+	int nP03,nP05,nP10,nP25,nP50,nP100;
+		
+	//  Prepare our context and publisher
     void *context = zmq_ctx_new();
     void *publisher = zmq_socket (context, ZMQ_PUB);
-    zmq_bind (publisher, "tcp://127.0.0.1:3333");
-    char *string = "Hi!";
+    zmq_bind (publisher, "tcp://*:3333");
 	
 #if 0
     const char* driver_version = sgp30_get_driver_version();
@@ -88,40 +106,38 @@ int main(void) {
             break;
 
         if (probe == SGP30_ERR_UNSUPPORTED_FEATURE_SET)
-            printf(
-                "Your sensor needs at least feature set version 1.0 (0x20)\n");
+            DBG("Your sensor needs at least feature set version 1.0 (0x20)\n");
 
-        printf("SGP sensor probing failed\n");
+        DBG_E_R("SGP sensor probing failed\n");
         sensirion_sleep_usec(1000000);
     }
 
-    printf("SGP sensor probing successful\n");
+    DBG("SGP sensor probing successful\n");
 
-    uint16_t feature_set_version;
-    uint8_t product_type;
+
     err = sgp30_get_feature_set_version(&feature_set_version, &product_type);
     if (err == STATUS_OK) {
-        printf("Feature set version: %u\n", feature_set_version);
-        printf("Product type: %u\n", product_type);
+        DBG("Feature set version: %u\n", feature_set_version);
+        DBG("Product type: %u\n", product_type);
     } else {
-        printf("sgp30_get_feature_set_version failed!\n");
+        DBG_E_R("sgp30_get_feature_set_version failed!\n");
     }
-    uint64_t serial_id;
+
     err = sgp30_get_serial_id(&serial_id);
     if (err == STATUS_OK) {
-        printf("SerialID: %" PRIu64 "\n", serial_id);
+        DBG("SerialID: %" PRIu64 "\n", serial_id);
     } else {
-        printf("sgp30_get_serial_id failed!\n");
+        DBG_E_R("sgp30_get_serial_id failed!\n");
     }
 
     /* Read gas raw signals */
     err = sgp30_measure_raw_blocking_read(&ethanol_raw_signal, &h2_raw_signal);
     if (err == STATUS_OK) {
         /* Print ethanol raw signal and h2 raw signal */
-        printf("Ethanol raw signal: %u\n", ethanol_raw_signal);
-        printf("H2 raw signal: %u\n", h2_raw_signal);
+        DBG("Ethanol raw signal: %u\n", ethanol_raw_signal);
+        DBG("H2 raw signal: %u\n", h2_raw_signal);
     } else {
-        printf("error reading raw signals\n");
+        DBG_E_R("error reading raw signals\n");
     }
 
     /* Consider the two cases (A) and (B):
@@ -130,15 +146,23 @@ int main(void) {
      *     sgp30_iaq_init() */
     err = sgp30_iaq_init();
     if (err == STATUS_OK) {
-        printf("sgp30_iaq_init done\n");
+        DBG("sgp30_iaq_init done\n");
     } else {
-        printf("sgp30_iaq_init failed!\n");
+        DBG_E_R("sgp30_iaq_init failed!\n");
     }
     /* (B) If a recent baseline is available, set it after sgp30_iaq_init() for
      * faster start-up */
     /* IMPLEMENT: retrieve iaq_baseline from presistent storage;
      * err = sgp30_set_iaq_baseline(iaq_baseline);
      */
+
+	g_SGP30.m_sFeature_version = feature_set_version;
+	g_SGP30.m_cProduct_type = product_type;
+	g_SGP30.m_llSerial_id = serial_id;
+	g_SGP30.m_sEthanol_raw_signal = ethanol_raw_signal;
+	g_SGP30.m_sH2_raw_signal = h2_raw_signal;
+
+
 #endif
 
 #if 1
@@ -179,6 +203,9 @@ int main(void) {
 #if 1
         err = sgp30_measure_iaq_blocking_read(&tvoc_ppb, &co2_eq_ppm);
         if (err == STATUS_OK) {
+			g_SGP30.m_sTvoc_ppb = tvoc_ppb;
+			g_SGP30.m_sCo2_eq_ppm = co2_eq_ppm;
+		
             printf("tVOC : %dppb, CO2eq : %dppm\n", tvoc_ppb, co2_eq_ppm);
 
         } else {
@@ -200,22 +227,35 @@ int main(void) {
 #endif
 
 #if 1
-		pm5000_read(szPm5000);
-		printf("pm5000: %s\r\n", szPm5000);
+		pm5000_read(&nP03, &nP05, &nP10, &nP25, &nP50, &nP100);
+		printf("pm5000: 0.3u=%d, 0.5u=%d, 1.0u=%d, 2.5u=%d, 5u=%d, 10u=%d\r\n", nP03, nP05, nP10, nP25, nP50, nP100);
 #endif
 
 
-		err = htu31d_readTnRH(szBuf);
+		err = htu31d_readTnRH(&fTemp, &fHum);
+
+		string msg;
+		msg = "{\"sgp30\": {\"feature_ver\":";
+		msg += to_string(g_SGP30.m_sFeature_version);
+		msg += ", \"product_type\":";
+		msg += to_string(g_SGP30.m_cProduct_type);
+		msg += ", \"serial_id\":";
+		msg += to_string(g_SGP30.m_llSerial_id);
+		msg += ", \"ethanol_raw_signal\":";
+		msg += to_string(g_SGP30.m_sEthanol_raw_signal);
+		msg += ", \"h2_raw_signal\":";
+		msg += to_string(g_SGP30.m_sH2_raw_signal);
+		msg += "}}";
+
+        int rc = zmq_send(publisher, msg.c_str(), msg.size(), 0);
+		if( rc == -1 ) 
+			DBG_E_R("zmq_send::error=%d\r\n", zmq_errno());
+
         /* The IAQ measurement must be triggered exactly once per second (SGP30)
          * to get accurate values.
          */
         sleep(1);  // SGP30
 
-        zmq_msg_t message;
-        zmq_msg_init_size (&message, strlen(szPm5000));
-        memcpy (zmq_msg_data(&message), string, strlen(szPm5000));
-        int rc = zmq_msg_send(publisher, &message, 0);
-        zmq_msg_close (&message);		
     }
 
 	zmq_close (publisher);

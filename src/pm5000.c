@@ -34,7 +34,7 @@ int16_t pm5000_i2c_write_cmd(uint8_t address, uint8_t *pCmd, uint8_t len)
     return sensirion_i2c_write(address, pCmd, len);
 }
 
-int16_t pm5000_read(uint8_t *pData)
+int16_t pm5000_read(int *pP03, int *pP05, int *pP10, int *pP25, int *pP50, int *pP100)
 {
 	int16_t i = 0;
 	int16_t ret = 0;
@@ -58,8 +58,17 @@ int16_t pm5000_read(uint8_t *pData)
 	nP50 = szBuf[25]*256*256 + szBuf[26]*256 + szBuf[27];
 	nP100 = szBuf[28]*256*256 + szBuf[29]*256 + szBuf[30];
 	
-	sprintf(pData, "len=%d, sts=%x, p0.3=%d, p0.5=%d, p1.0=%d, p2.5=%d, p5.0-%d, p10.0=%d",
+	printf("len=%d, sts=%x, p0.3=%d, p0.5=%d, p1.0=%d, p2.5=%d, p5.0-%d, p10.0=%d\r\n",
 		szBuf[1], szBuf[2], nP03, nP05, nP10, nP25, nP50, nP100);
+
+	*pP03 = nP03;
+	*pP05 = nP05;
+	*pP10 = nP10;
+	*pP25 = nP25;
+	*pP50 = nP50;
+	*pP100 = nP100;
+	
+	
 	return NO_ERROR;
 
 

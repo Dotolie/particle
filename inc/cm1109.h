@@ -33,7 +33,12 @@ extern "C" {
 #define CM1109_CHECK_SOFTWARE_VERSION_SIZE							12
 
 
-
+typedef struct _CM1109 {
+	short m_sCo2;
+	char m_cStatus;
+	char m_szSwVer[16];
+	short m_sSerialNo[6];
+} tCM1109;
 
 int16_t cm1109_check_crc(uint8_t* pBuf, int16_t nSize);
 int16_t cm1109_i2c_write_cmd(uint8_t address, uint8_t *pCmd, uint8_t len);
