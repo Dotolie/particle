@@ -64,7 +64,7 @@ int main(void) {
     uint16_t tvoc_ppb, co2_eq_ppm;
     uint32_t iaq_baseline;
     uint16_t ethanol_raw_signal, h2_raw_signal;
-	uint16_t feature_set_version;
+    uint16_t feature_set_version;
     uint8_t product_type;
     uint64_t serial_id;
 	
@@ -112,32 +112,32 @@ int main(void) {
         sensirion_sleep_usec(1000000);
     }
 
-    DBG("SGP sensor probing successful\n");
+    printf("SGP sensor probing successful\n");
 
 
     err = sgp30_get_feature_set_version(&feature_set_version, &product_type);
     if (err == STATUS_OK) {
-        DBG("Feature set version: %u\n", feature_set_version);
-        DBG("Product type: %u\n", product_type);
+        printf("Feature set version: %u\n", feature_set_version);
+        printf("Product type: %u\n", product_type);
     } else {
-        DBG_E_R("sgp30_get_feature_set_version failed!\n");
+        printf("sgp30_get_feature_set_version failed!\n");
     }
 
     err = sgp30_get_serial_id(&serial_id);
     if (err == STATUS_OK) {
-        DBG("SerialID: %" PRIu64 "\n", serial_id);
+        printf("SerialID: %" PRIu64 "\n", serial_id);
     } else {
-        DBG_E_R("sgp30_get_serial_id failed!\n");
+        printf("sgp30_get_serial_id failed!\n");
     }
 
     /* Read gas raw signals */
     err = sgp30_measure_raw_blocking_read(&ethanol_raw_signal, &h2_raw_signal);
     if (err == STATUS_OK) {
         /* Print ethanol raw signal and h2 raw signal */
-        DBG("Ethanol raw signal: %u\n", ethanol_raw_signal);
-        DBG("H2 raw signal: %u\n", h2_raw_signal);
+        printf("Ethanol raw signal: %u\n", ethanol_raw_signal);
+        printf("H2 raw signal: %u\n", h2_raw_signal);
     } else {
-        DBG_E_R("error reading raw signals\n");
+        printf("error reading raw signals\n");
     }
 
     /* Consider the two cases (A) and (B):
@@ -146,9 +146,9 @@ int main(void) {
      *     sgp30_iaq_init() */
     err = sgp30_iaq_init();
     if (err == STATUS_OK) {
-        DBG("sgp30_iaq_init done\n");
+        printf("sgp30_iaq_init done\n");
     } else {
-        DBG_E_R("sgp30_iaq_init failed!\n");
+        printf("sgp30_iaq_init failed!\n");
     }
     /* (B) If a recent baseline is available, set it after sgp30_iaq_init() for
      * faster start-up */
@@ -235,17 +235,23 @@ int main(void) {
 		err = htu31d_readTnRH(&fTemp, &fHum);
 
 		string msg;
-		msg = "{\"sgp30\": {\"feature_ver\":";
+		msg = "{\"sgp30\": {\"version\":";
 		msg += to_string(g_SGP30.m_sFeature_version);
-		msg += ", \"product_type\":";
+		msg += ", \"type\":";
 		msg += to_string(g_SGP30.m_cProduct_type);
-		msg += ", \"serial_id\":";
+		msg += ", \"serial\":";
 		msg += to_string(g_SGP30.m_llSerial_id);
-		msg += ", \"ethanol_raw_signal\":";
+		msg += ", \"ethanol\":";
 		msg += to_string(g_SGP30.m_sEthanol_raw_signal);
-		msg += ", \"h2_raw_signal\":";
+		msg += ", \"h2\":";
 		msg += to_string(g_SGP30.m_sH2_raw_signal);
+		msg += ", \"tvoc\":";
+		msg += to_string(g_SGP30.m_sTvoc_ppb);
+		msg += ", \"co2eq\":";
+		msg += to_string(g_SGP30.m_sCo2_eq_ppm);
 		msg += "}}";
+
+	printf("%s\r\n", msg.c_str());
 
         int rc = zmq_send(publisher, msg.c_str(), msg.size(), 0);
 		if( rc == -1 ) 
