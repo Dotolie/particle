@@ -233,6 +233,7 @@ int main(void) {
 
 
 		err = htu31d_readTnRH(&fTemp, &fHum);
+		err = htu31d_Convertion(3,3);
 
 		string msg;
 		msg = "{\"sgp30\": {\"version\":";
@@ -249,7 +250,21 @@ int main(void) {
 		msg += to_string(g_SGP30.m_sTvoc_ppb);
 		msg += ", \"co2eq\":";
 		msg += to_string(g_SGP30.m_sCo2_eq_ppm);
-		msg += "}}";
+		msg += "},";
+
+		msg += "\"pm5000\": {\"p03\":";
+		msg += to_string(nP03);
+		msg += ", \"p05\":";
+		msg += to_string(nP05);
+		msg += ", \"p10\":";
+		msg += to_string(nP10);
+		msg += ", \"p25\":";
+		msg += to_string(nP25);
+		msg += ", \"p50\":";
+		msg += to_string(nP50);
+		msg += ", \"p100\":";
+		msg += to_string(nP100);
+		msg += "}";
 
 	printf("%s\r\n", msg.c_str());
 
